@@ -193,6 +193,7 @@ async function add(text) {
 
 let msgT, undo = null
 function hideToast() {
+    $('toast').classList.remove('pointer-events-auto')
     $('toast').classList.add('opacity-0', 'translate-y-2', 'pointer-events-none')
     undo = null
 }
@@ -204,7 +205,9 @@ function flash(t, action) {
     undo = action?.run || null
     $('toastAction').textContent = action?.label || ''
     $('toastAction').classList.toggle('hidden', !action)
+    // pointer-events se hereda del contenedor (que es none); hay que activarlo explícitamente
     $('toast').classList.remove('opacity-0', 'translate-y-2', 'pointer-events-none')
+    $('toast').classList.add('pointer-events-auto')
     clearTimeout(msgT)
     // Los avisos con acción duran más para dar tiempo a reaccionar
     msgT = setTimeout(hideToast, action ? 6000 : 4000)
