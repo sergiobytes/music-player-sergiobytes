@@ -80,22 +80,66 @@
   color-scheme: light;
 }
 
+@layer base {
+  /* Resplandor ambiental tomado de los colores del tema */
+  body {
+    background:
+      radial-gradient(60rem 36rem at 105% -10%, color-mix(in oklab, var(--c-accent) 13%, transparent), transparent 70%),
+      radial-gradient(48rem 30rem at -10% 110%, color-mix(in oklab, var(--c-accent2) 8%, transparent), transparent 70%),
+      var(--c-bg);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--c-accent) 35%, transparent);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--c-line) transparent;
+  }
+}
+
 @layer components {
+  /* Barras de progreso y volumen: la parte recorrida se pinta con --p */
   .range {
-    @apply h-1 flex-1 cursor-pointer appearance-none rounded-full bg-line;
-    accent-color: var(--c-accent);
+    --p: 0%;
+    @apply h-4 min-w-0 flex-1 cursor-pointer appearance-none bg-transparent;
+  }
+
+  .range::-webkit-slider-runnable-track {
+    @apply h-1 rounded-full;
+    background: linear-gradient(to right, var(--c-accent) var(--p), var(--c-line) var(--p));
   }
 
   .range::-webkit-slider-thumb {
-    @apply size-3 appearance-none rounded-full bg-fg;
+    @apply -mt-1 size-3 appearance-none rounded-full bg-fg shadow transition-transform;
+  }
+
+  .range:hover::-webkit-slider-thumb,
+  .range:active::-webkit-slider-thumb {
+    @apply scale-125;
+  }
+
+  .range::-moz-range-track {
+    @apply h-1 rounded-full bg-line;
+  }
+
+  .range::-moz-range-progress {
+    @apply h-1 rounded-full bg-accent;
   }
 
   .range::-moz-range-thumb {
-    @apply size-3 rounded-full border-0 bg-fg;
+    @apply size-3 rounded-full border-0 bg-fg shadow;
   }
 
   .ctrl {
-    @apply grid size-9 place-items-center rounded-full text-muted transition hover:text-fg;
+    @apply relative grid size-10 cursor-pointer place-items-center rounded-full text-muted transition hover:bg-panel2 hover:text-fg active:scale-95;
   }
 
   .ctrl svg {
@@ -106,12 +150,61 @@
     @apply text-accent;
   }
 
+  .ctrl.on::before {
+    content: "";
+    @apply absolute bottom-0.5 left-1/2 size-1 -translate-x-1/2 rounded-full bg-accent;
+  }
+
   .rep-one::after {
     content: "1";
-    @apply absolute top-1.5 right-1 text-[9px] font-extrabold text-accent;
+    @apply absolute top-1.5 right-1.5 text-[9px] font-extrabold text-accent;
   }
 
   #yt {
     @apply size-full;
+  }
+
+  /* Ecualizador animado para la canción que está sonando */
+  .eq {
+    @apply inline-flex h-3.5 items-end gap-0.5;
+  }
+
+  .eq > span {
+    @apply w-0.75 rounded-full bg-accent;
+    height: 30%;
+    animation: eq 0.9s ease-in-out infinite;
+  }
+
+  .eq > span:nth-child(2) {
+    animation-delay: -0.3s;
+  }
+
+  .eq > span:nth-child(3) {
+    animation-delay: -0.6s;
+  }
+
+  .eq.paused > span {
+    animation-play-state: paused;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .eq > span {
+      animation: none;
+      height: 60%;
+    }
+  }
+
+  kbd {
+    @apply rounded-md border border-b-2 border-line bg-panel2 px-1.5 py-0.5 font-sans text-[11px] text-fg;
+  }
+}
+
+@keyframes eq {
+  0%,
+  100% {
+    height: 30%;
+  }
+  50% {
+    height: 100%;
   }
 }

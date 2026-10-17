@@ -20,14 +20,17 @@ function applyTheme(id) {
 
 function renderThemeMenu() {
     const current = document.documentElement.dataset.theme
+    // Color de la barra del navegador en móviles
+    const theme = THEMES.find((t) => t.id === current)
+    if (theme) document.querySelector('meta[name="theme-color"]').content = theme.colors[0]
     $('themeMenu').innerHTML = THEMES.map((t) => `
     <button type="button" role="menuitemradio" aria-checked="${t.id === current}" data-theme-id="${t.id}"
-      class="flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-panel2 ${t.id === current ? 'text-accent font-semibold' : 'text-fg'}">
-      <span class="flex overflow-hidden rounded-md border border-line">
-        ${t.colors.map((c) => `<span class="block h-5 w-3" style="background:${c}"></span>`).join('')}
+      class="flex w-full cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-left text-sm transition hover:bg-panel2 ${t.id === current ? 'bg-panel2/60 text-accent font-semibold' : 'text-fg'}">
+      <span class="flex overflow-hidden rounded-md ring-1 ring-line">
+        ${t.colors.map((c) => `<span class="block h-6 w-3.5" style="background:${c}"></span>`).join('')}
       </span>
       <span class="flex-1">${t.name}</span>
-      ${t.id === current ? '<span>✓</span>' : ''}
+      ${t.id === current ? '<svg viewBox="0 0 24 24" class="size-4 fill-current"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>' : ''}
     </button>`).join('')
 }
 
@@ -50,6 +53,9 @@ renderThemeMenu()
 const KEY = 'rola-state-v1'
 const PLAY = '<path d="M8 5v14l11-7z"/>'
 const PAUSE = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
+const VOL_HIGH = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/>'
+const VOL_LOW = '<path d="M5 9v6h4l5 5V4L9 9H5zm13.5 3A4.5 4.5 0 0 0 16 8v8a4.5 4.5 0 0 0 2.5-4z"/>'
+const VOL_MUTE = '<path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.5 2.5V12zm2.5 0c0 .9-.2 1.8-.5 2.6l1.5 1.5A8.8 8.8 0 0 0 21 12a9 9 0 0 0-7-8.8v2.1a7 7 0 0 1 5 6.7zM4.3 3 3 4.3 7.7 9H3v6h4l5 5v-6.7l4.3 4.3c-.7.5-1.4.9-2.3 1.2v2.1a9 9 0 0 0 3.7-1.8l2 2 1.3-1.3-9-9L4.3 3zM12 4 9.9 6.1 12 8.2V4z"/>'
 
 let state = { queue: [], index: -1, shuffle: false, repeat: 'off', volume: 80 }
 try {
@@ -60,6 +66,7 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)) } ca
 
 let player = null, ready = false, playing = false, seeking = false
 let history = []
+let lastVolume = state.volume || 80
 
 // ============ Enlaces ============
 function parseId(raw) {
@@ -86,7 +93,9 @@ async function fetchTitle(item) {
             encodeURIComponent('https://www.youtube.com/watch?v=' + item.id))
         if (!r.ok) return
         const d = await r.json()
-        if (d.title) { item.title = d.title; save(); render() }
+        if (d.title) item.title = d.title
+        if (d.author_name) item.author = d.author_name
+        save(); render()
     } catch (e) { /* el título se completa al reproducirse */ }
 }
 
@@ -97,12 +106,12 @@ function add(text) {
     for (const p of parts) {
         const id = parseId(p)
         if (!id) { bad++; continue }
-        const item = { id, title: 'Cargando título…', uid: Math.random().toString(36).slice(2) }
+        const item = { id, title: 'Cargando título…', author: '', uid: Math.random().toString(36).slice(2) }
         state.queue.push(item)
         fetchTitle(item)
         added++
     }
-    let m = added ? `${added} canción${added > 1 ? 'es' : ''} agregada${added > 1 ? 's' : ''} a la cola.` : ''
+    let m = added ? `${added} ${added > 1 ? 'canciones' : 'canción'} agregada${added > 1 ? 's' : ''} a la cola.` : ''
     if (bad) m += ` ${bad} enlace${bad > 1 ? 's' : ''} no reconocido${bad > 1 ? 's' : ''}.`
     flash(m.trim())
     save(); render()
@@ -112,9 +121,12 @@ function add(text) {
 
 let msgT
 function flash(t) {
-    $('msg').textContent = t
+    if (!t) return
+    const el = $('msg')
+    el.textContent = t
+    el.classList.remove('opacity-0', 'translate-y-2')
     clearTimeout(msgT)
-    msgT = setTimeout(() => ($('msg').textContent = ''), 4000)
+    msgT = setTimeout(() => el.classList.add('opacity-0', 'translate-y-2'), 4000)
 }
 
 // ============ Reproducción ============
@@ -158,34 +170,88 @@ function toggle() {
     playing ? player.pauseVideo() : player.playVideo()
 }
 
+function setVolume(v) {
+    state.volume = v
+    if (v > 0) lastVolume = v
+    $('vol').value = v
+    fill($('vol'))
+    $('volIcon').innerHTML = v === 0 ? VOL_MUTE : v < 50 ? VOL_LOW : VOL_HIGH
+    if (ready) { player.setVolume(v); if (v > 0) player.unMute() }
+    save()
+}
+
+const toggleMute = () => setVolume(state.volume > 0 ? 0 : lastVolume)
+
 // ============ Render ============
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+const thumb = (id) => `https://i.ytimg.com/vi/${id}/mqdefault.jpg`
+const eq = (paused) => `<span class="eq ${paused ? 'paused' : ''}"><span></span><span></span><span></span></span>`
+
+// Pinta la parte recorrida de una barra (progreso o volumen)
+const fill = (el) => el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min)) * 100 + '%')
 
 function render() {
-    $('empty').classList.toggle('hidden', state.queue.length > 0)
+    const n = state.queue.length
+    $('empty').classList.toggle('hidden', n > 0)
+    $('clearBtn').classList.toggle('hidden', !n)
+    $('count').classList.toggle('hidden', !n)
+    $('count').textContent = n
     $('list').innerHTML = state.queue.map((it, i) => {
         const cur = i === state.index
         return `
-    <li draggable="true" data-i="${i}"
-      class="group grid cursor-pointer grid-cols-[28px_64px_1fr_auto] items-center gap-3 rounded-xl p-2 ${cur ? 'bg-panel2' : 'hover:bg-panel'}">
-      <span class="text-right text-muted tabular-nums">${cur && playing ? '<span class="text-accent">♪</span>' : i + 1}</span>
-      <img src="https://i.ytimg.com/vi/${it.id}/mqdefault.jpg" alt="" loading="lazy" class="h-9 w-16 rounded-md bg-panel2 object-cover">
-      <span class="truncate ${it.error ? 'text-danger line-through' : cur ? 'text-accent font-medium' : ''}" title="${esc(it.title)}">${esc(it.title)}</span>
-      <button data-rm="${i}" title="Quitar" class="cursor-pointer rounded-md px-2 py-1.5 text-muted opacity-0 group-hover:opacity-100 hover:text-danger">✕</button>
+    <li draggable="true" data-i="${i}" tabindex="0"
+      class="group grid cursor-pointer grid-cols-[1.5rem_4rem_minmax(0,1fr)_auto] items-center gap-3 rounded-xl p-2 transition-colors sm:grid-cols-[2rem_5rem_minmax(0,1fr)_auto] ${cur ? 'bg-panel2 ring-1 ring-line' : 'hover:bg-panel'}">
+      <span class="grid place-items-center text-sm text-muted tabular-nums">${cur ? eq(!playing) : i + 1}</span>
+      <img src="${thumb(it.id)}" alt="" loading="lazy" draggable="false" class="aspect-video w-full rounded-md bg-panel2 object-cover">
+      <span class="min-w-0">
+        <span class="block truncate text-sm font-medium ${it.error ? 'text-danger line-through' : cur ? 'text-accent' : ''}" title="${esc(it.title)}">${esc(it.title)}</span>
+        <span class="block truncate text-xs text-muted">${it.error ? 'No se puede reproducir fuera de YouTube' : esc(it.author || 'YouTube')}</span>
+      </span>
+      <button type="button" data-rm="${i}" title="Quitar" class="grid size-8 cursor-pointer place-items-center rounded-lg text-muted opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-canvas/60 hover:text-danger pointer-coarse:opacity-100">
+        <svg viewBox="0 0 24 24" class="size-4 fill-current"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg>
+      </button>
     </li>`
     }).join('')
 
     const cur = state.queue[state.index]
-    $('npTitle').textContent = cur ? cur.title : '—'
+    $('npTitle').textContent = cur ? cur.title : 'Nada sonando'
+    $('npAuthor').textContent = cur ? cur.author || 'YouTube' : 'Agrega canciones para empezar'
+    $('npEq').classList.toggle('hidden', !cur)
+    $('npEq').classList.toggle('paused', !playing)
+    $('stage').classList.toggle('shadow-[0_24px_80px_-28px_var(--c-accent)]', playing)
     $('ftTitle').textContent = cur ? cur.title : ''
+    $('ftAuthor').textContent = cur ? cur.author || 'YouTube' : ''
+    $('ftThumb').hidden = !cur
+    if (cur && $('ftThumb').dataset.id !== cur.id) { $('ftThumb').src = thumb(cur.id); $('ftThumb').dataset.id = cur.id }
+
     const ni = state.shuffle ? -1
-        : state.index + 1 < state.queue.length ? state.index + 1
-            : state.repeat === 'all' && state.queue.length ? 0 : -1
-    $('upNext').textContent = ni >= 0 && cur ? 'Sigue: ' + state.queue[ni].title
-        : state.shuffle && cur ? 'Modo aleatorio activado' : ''
+        : state.index + 1 < n ? state.index + 1
+            : state.repeat === 'all' && n ? 0 : -1
+    const label = '<div class="mb-2 text-[11px] font-semibold tracking-[0.18em] text-muted uppercase">A continuación</div>'
+    if (ni >= 0 && cur) {
+        const it = state.queue[ni]
+        $('upNext').innerHTML = `${label}
+      <button type="button" data-i="${ni}" class="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-line bg-panel/60 p-2 text-left transition hover:bg-panel2">
+        <img src="${thumb(it.id)}" alt="" class="aspect-video w-20 flex-none rounded-md bg-panel2 object-cover">
+        <span class="min-w-0">
+          <span class="block truncate text-sm font-medium">${esc(it.title)}</span>
+          <span class="block truncate text-xs text-muted">${esc(it.author || 'YouTube')}</span>
+        </span>
+      </button>`
+    } else if (state.shuffle && cur) {
+        $('upNext').innerHTML = `${label}
+      <div class="flex items-center gap-3 rounded-xl border border-dashed border-line p-3 text-sm text-muted">
+        <svg viewBox="0 0 24 24" class="size-5 flex-none fill-accent"><path d="M10.6 9.2 5.4 4 4 5.4l5.2 5.2 1.4-1.4ZM14.5 4l2 2L4 18.6 5.4 20 18 7.5l2 2V4h-5.5Zm.3 9.4-1.4 1.4 3.1 3.1-2 2.1H20v-5.5l-2 2-3.2-3.1Z"/></svg>
+        Modo aleatorio: la siguiente será sorpresa.
+      </div>`
+    } else {
+        $('upNext').innerHTML = ''
+    }
+
     $('shufBtn').classList.toggle('on', state.shuffle)
     $('repBtn').classList.toggle('on', state.repeat !== 'off')
     $('repBtn').classList.toggle('rep-one', state.repeat === 'one')
+    $('repBtn').title = { off: 'Repetir', all: 'Repetir: toda la lista', one: 'Repetir: una canción' }[state.repeat]
     document.title = cur && playing ? '▶ ' + cur.title : 'Rola'
 }
 
@@ -199,7 +265,16 @@ setInterval(() => {
     $('cur').textContent = fmt(c)
     $('dur').textContent = fmt(d)
     $('seek').value = d ? (c / d) * 1000 : 0
+    fill($('seek'))
 }, 500)
+
+// Placeholder corto en pantallas angostas para que no se corte
+const wide = matchMedia('(min-width: 640px)')
+const setPlaceholder = () => {
+    $('links').placeholder = wide.matches ? 'Pega uno o varios enlaces de YouTube y presiona Enter' : 'Enlaces de YouTube'
+}
+wide.addEventListener('change', setPlaceholder)
+setPlaceholder()
 
 // ============ Eventos ============
 $('addForm').addEventListener('submit', (e) => { e.preventDefault(); add($('links').value); $('links').value = '' })
@@ -235,6 +310,13 @@ $('list').addEventListener('click', (e) => {
     }
     const li = e.target.closest('li')
     if (li) playAt(+li.dataset.i)
+})
+$('list').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.matches('li')) playAt(+e.target.dataset.i)
+})
+$('upNext').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-i]')
+    if (b) playAt(+b.dataset.i)
 })
 
 // Reordenar arrastrando
@@ -279,6 +361,7 @@ $('repBtn').addEventListener('click', () => { state.repeat = { off: 'all', all: 
 
 $('seek').addEventListener('input', () => {
     seeking = true
+    fill($('seek'))
     if (ready) $('cur').textContent = fmt(player.getDuration() * $('seek').value / 1000)
 })
 $('seek').addEventListener('change', () => {
@@ -286,12 +369,10 @@ $('seek').addEventListener('change', () => {
     seeking = false
 })
 
-$('vol').value = state.volume
-$('vol').addEventListener('input', () => {
-    state.volume = +$('vol').value
-    if (ready) { player.setVolume(state.volume); if (state.volume > 0) player.unMute() }
-    save()
-})
+$('vol').addEventListener('input', () => setVolume(+$('vol').value))
+$('muteBtn').addEventListener('click', toggleMute)
+setVolume(state.volume)
+fill($('seek'))
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') toggleThemeMenu(false)
@@ -299,6 +380,7 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'Space') { e.preventDefault(); toggle() }
     else if (e.key === 'ArrowRight' && e.shiftKey) next()
     else if (e.key === 'ArrowLeft' && e.shiftKey) prev()
+    else if (e.key.toLowerCase() === 'm' && !e.ctrlKey && !e.metaKey && !e.altKey) toggleMute()
 })
 
 // ============ Reproductor de YouTube ============
@@ -318,8 +400,9 @@ window.onYouTubeIframeAPIReady = () => {
                 if (e.data === YT.PlayerState.PLAYING) {
                     playing = true
                     const it = state.queue[state.index]
-                    const t = player.getVideoData?.().title
-                    if (it && t && it.title !== t) { it.title = t; save() }
+                    const d = player.getVideoData?.() || {}
+                    if (it && d.title && it.title !== d.title) { it.title = d.title; save() }
+                    if (it && d.author && it.author !== d.author) { it.author = d.author; save() }
                     if (it) it.error = false
                 } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.CUED) {
                     playing = false
