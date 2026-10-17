@@ -9,8 +9,10 @@ Hecho con HTML, JavaScript sin frameworks, [Tailwind CSS v4](https://tailwindcss
 ## Características
 
 - **Cola de reproducción**: pega uno o varios enlaces a la vez (separados por espacios, comas o saltos de línea).
+- **Playlists completas**: pega el enlace de una playlist pública y todos sus videos se suman a la cola.
+- **La cola avanza sola**: cuando una canción termina, sale de la lista y empieza la siguiente.
 - **Controles completos**: reproducir/pausa, anterior, siguiente, barra de progreso y volumen con botón de silencio.
-- **Aleatorio y repetición**: repetir toda la lista o una sola canción.
+- **Aleatorio y repetición**: repetir una sola canción, o repetir toda la lista (en ese modo las canciones no se quitan al terminar).
 - **Reordenar arrastrando** las canciones de la lista (con mouse).
 - **Recuerda tu sesión**: la cola, la canción actual, el volumen y los modos se guardan en `localStorage`.
 - **5 temas de color**: Atardecer, Medianoche, Bosque, Neón y Claro.
@@ -28,6 +30,9 @@ Hecho con HTML, JavaScript sin frameworks, [Tailwind CSS v4](https://tailwindcss
 | YouTube Music       | `https://music.youtube.com/watch?v=<id>`      |
 | Embed / live        | `https://www.youtube.com/embed/<id>`          |
 | ID del video, solo  | `dQw4w9WgXcQ`                                 |
+| Playlist completa   | `https://www.youtube.com/playlist?list=<id>`  |
+
+De cada playlist se agregan como máximo los primeros 200 videos, que es lo que permite leer el reproductor de YouTube. Un enlace de video que trae `&list=…` (por ejemplo, uno copiado mientras suena una playlist) agrega solo ese video. Para agregar la playlist completa, usa el enlace de la playlist (botón **Compartir** en la página de la playlist).
 
 ## Atajos de teclado
 

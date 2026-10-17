@@ -87,6 +87,50 @@ function parseId(raw) {
     return null
 }
 
+// Solo los enlaces de playlist (youtube.com/playlist?list=…); un video abierto desde una playlist se agrega solo
+function parseList(raw) {
+    try {
+        const u = new URL(raw.trim())
+        const host = u.hostname.replace(/^(www|m|music)\./, '')
+        const list = u.searchParams.get('list')
+        if (host === 'youtube.com' && u.pathname === '/playlist' && list && /^[\w-]+$/.test(list)) return list
+    } catch (e) { }
+    return null
+}
+
+// Lee los videos de una playlist con un reproductor oculto, sin interrumpir lo que está sonando
+function playlistIds(list) {
+    if (!window.YT?.Player) return Promise.resolve(null)
+    return new Promise((resolve) => {
+        const box = document.createElement('div')
+        box.style.cssText = 'position:fixed;left:-9999px;top:0;width:200px;height:200px'
+        document.body.appendChild(box)
+        let helper, poll, timer, done = false
+        const finish = (ids) => {
+            if (done) return
+            done = true
+            clearInterval(poll); clearTimeout(timer)
+            setTimeout(() => { helper?.destroy(); box.remove() }, 0)
+            resolve(ids)
+        }
+        const check = () => { const ids = helper.getPlaylist?.(); if (ids?.length) finish(ids) }
+        timer = setTimeout(() => finish(null), 10000)
+        helper = new YT.Player(box.appendChild(document.createElement('div')), {
+            width: 200,
+            height: 200,
+            playerVars: { listType: 'playlist', list },
+            events: {
+                onReady: () => { poll = setInterval(check, 300); check() },
+                onError: () => finish(null),
+            },
+        })
+    })
+}
+
+// Guarda y vuelve a pintar una sola vez aunque lleguen muchos títulos seguidos
+let renderT
+const renderSoon = () => { clearTimeout(renderT); renderT = setTimeout(() => { save(); render() }, 150) }
+
 async function fetchTitle(item) {
     try {
         const r = await fetch('https://www.youtube.com/oembed?format=json&url=' +
@@ -95,28 +139,56 @@ async function fetchTitle(item) {
         const d = await r.json()
         if (d.title) item.title = d.title
         if (d.author_name) item.author = d.author_name
-        save(); render()
+        renderSoon()
     } catch (e) { /* el título se completa al reproducirse */ }
 }
 
-function add(text) {
-    const parts = text.split(/[\s,]+/).filter(Boolean)
-    let added = 0, bad = 0
-    const wasEmpty = state.index < 0 || !state.queue.length
-    for (const p of parts) {
-        const id = parseId(p)
-        if (!id) { bad++; continue }
-        const item = { id, title: 'Cargando título…', author: '', uid: Math.random().toString(36).slice(2) }
-        state.queue.push(item)
-        fetchTitle(item)
-        added++
+// Pide los títulos de a pocos para no saturar a YouTube con playlists grandes
+const titleQueue = []
+let titleWorkers = 0
+function queueTitle(item) {
+    titleQueue.push(item)
+    while (titleWorkers < 4 && titleQueue.length) {
+        titleWorkers++
+        ;(async () => {
+            while (titleQueue.length) await fetchTitle(titleQueue.shift())
+            titleWorkers--
+        })()
     }
+}
+
+async function add(text) {
+    const parts = text.split(/[\s,]+/).filter(Boolean)
+    const ids = []
+    let bad = 0, badLists = 0, capped = false
+    for (const p of parts) {
+        const list = parseList(p)
+        if (list) {
+            flash('Cargando playlist…')
+            const found = await playlistIds(list)
+            if (found?.length) ids.push(...found)
+            else badLists++
+            // El reproductor de YouTube solo entrega los primeros 200 videos
+            if (found?.length >= 200) capped = true
+            continue
+        }
+        const id = parseId(p)
+        if (id) ids.push(id)
+        else bad++
+    }
+    const items = ids.map((id) => ({ id, title: 'Cargando título…', author: '', uid: Math.random().toString(36).slice(2) }))
+    const wasEmpty = state.index < 0 || !state.queue.length
+    state.queue.push(...items)
+    items.forEach(queueTitle)
+    const added = items.length
     let m = added ? `${added} ${added > 1 ? 'canciones' : 'canción'} agregada${added > 1 ? 's' : ''} a la cola.` : ''
+    if (capped) m += ' YouTube solo permite leer los primeros 200 videos de una playlist.'
+    if (badLists) m += ` No se pudo leer ${badLists > 1 ? badLists + ' playlists' : 'la playlist'} (puede ser privada).`
     if (bad) m += ` ${bad} enlace${bad > 1 ? 's' : ''} no reconocido${bad > 1 ? 's' : ''}.`
     flash(m.trim())
     save(); render()
     // Solo arranca si no había nada sonando; si ya suena algo, se queda en la cola
-    if (added && wasEmpty) playAt(state.queue.length - added)
+    if (added && wasEmpty) playAt(state.queue.indexOf(items[0]))
 }
 
 let msgT
@@ -155,6 +227,23 @@ function next(auto = false) {
     const i = nextIndex()
     if (i >= 0) playAt(i)
     else if (auto) { playing = false; updatePlayIcon() }
+}
+
+// Al terminar una canción sin repetición activa, sale de la cola y suena la siguiente
+function ended() {
+    if (state.repeat !== 'off') { next(true); return }
+    const i = state.index
+    if (i < 0) return
+    state.queue.splice(i, 1)
+    history = []
+    const n = state.queue.length
+    // La siguiente canción ocupa ahora el lugar de la que se quitó
+    let to = -1
+    if (n && state.shuffle) to = Math.floor(Math.random() * n)
+    else if (i < n) to = i
+    state.index = -1
+    if (to >= 0) playAt(to, false)
+    else { playing = false; save(); updatePlayIcon() }
 }
 
 function prev() {
@@ -271,7 +360,7 @@ setInterval(() => {
 // Placeholder corto en pantallas angostas para que no se corte
 const wide = matchMedia('(min-width: 640px)')
 const setPlaceholder = () => {
-    $('links').placeholder = wide.matches ? 'Pega uno o varios enlaces de YouTube y presiona Enter' : 'Enlaces de YouTube'
+    $('links').placeholder = wide.matches ? 'Pega enlaces de videos o playlists de YouTube y presiona Enter' : 'Enlaces de YouTube'
 }
 wide.addEventListener('change', setPlaceholder)
 setPlaceholder()
@@ -284,7 +373,7 @@ $('links').addEventListener('keydown', (e) => {
 $('links').addEventListener('paste', () => setTimeout(() => {
     // Si todo lo pegado son enlaces válidos, se agregan de inmediato
     const v = $('links').value
-    if (v.trim() && v.split(/\s+/).filter(Boolean).every((p) => parseId(p))) { add(v); $('links').value = '' }
+    if (v.trim() && v.split(/\s+/).filter(Boolean).every((p) => parseList(p) || parseId(p))) { add(v); $('links').value = '' }
 }, 0))
 
 $('list').addEventListener('click', (e) => {
@@ -407,7 +496,7 @@ window.onYouTubeIframeAPIReady = () => {
                 } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.CUED) {
                     playing = false
                 } else if (e.data === YT.PlayerState.ENDED) {
-                    playing = false; updatePlayIcon(); next(true); return
+                    playing = false; updatePlayIcon(); ended(); return
                 }
                 updatePlayIcon()
             },
