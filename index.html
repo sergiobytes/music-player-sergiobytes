@@ -110,9 +110,18 @@
         >
           <div
             id="stage"
-            class="aspect-video min-h-50 w-full flex-none overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-line transition-shadow duration-700"
+            class="relative aspect-video min-h-50 w-full flex-none overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-line transition-shadow duration-700"
           >
             <div id="yt"></div>
+            <!-- Tapa el reproductor cuando no hay canción actual, para que no quede la que se quitó -->
+            <div
+              id="stagePh"
+              class="absolute inset-0 grid place-items-center bg-panel2 text-muted/40"
+            >
+              <svg viewBox="0 0 24 24" class="size-14 fill-current" aria-hidden="true">
+                <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
+              </svg>
+            </div>
           </div>
 
           <div class="min-w-0">
@@ -304,12 +313,59 @@
     <div
       class="pointer-events-none fixed inset-x-0 bottom-36 z-40 flex justify-center px-4 md:bottom-28"
     >
-      <output
-        id="msg"
-        aria-live="polite"
-        class="block max-w-md translate-y-2 rounded-xl border border-line bg-panel px-4 py-2.5 text-center text-sm opacity-0 shadow-2xl transition duration-300"
-      ></output>
+      <div
+        id="toast"
+        class="pointer-events-none flex max-w-md translate-y-2 items-center gap-3 rounded-xl border border-line bg-panel px-4 py-2 text-sm opacity-0 shadow-2xl transition duration-300"
+      >
+        <output id="msg" aria-live="polite" class="line-clamp-2 min-w-0 flex-1 py-1"></output>
+        <button
+          id="toastAction"
+          type="button"
+          class="-mr-2 hidden flex-none cursor-pointer rounded-lg px-3 py-1.5 font-semibold text-accent transition hover:bg-panel2"
+        ></button>
+      </div>
     </div>
+
+    <!-- Confirmación para vaciar la lista -->
+    <dialog
+      id="clearDlg"
+      aria-labelledby="clearDlgTitle"
+      aria-describedby="clearDlgText"
+      class="dlg m-auto w-[min(26rem,calc(100%-2rem))] rounded-2xl border border-line bg-panel p-0 text-fg shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+    >
+      <form method="dialog" class="p-5 sm:p-6">
+        <div class="flex gap-4">
+          <div
+            class="grid size-11 flex-none place-items-center rounded-full bg-danger/15 text-danger"
+          >
+            <svg viewBox="0 0 24 24" class="size-5 fill-current" aria-hidden="true">
+              <path
+                d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"
+              />
+            </svg>
+          </div>
+          <div class="min-w-0 pt-0.5">
+            <h2 id="clearDlgTitle" class="text-base font-bold">¿Vaciar la lista?</h2>
+            <p id="clearDlgText" class="mt-1 text-sm leading-relaxed text-muted"></p>
+          </div>
+        </div>
+        <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            value="cancel"
+            autofocus
+            class="h-11 cursor-pointer rounded-xl border border-line px-4 font-semibold transition hover:bg-panel2 sm:h-10"
+          >
+            Cancelar
+          </button>
+          <button
+            value="confirm"
+            class="h-11 cursor-pointer rounded-xl bg-danger px-4 font-bold text-canvas transition hover:brightness-110 active:scale-[0.97] sm:h-10"
+          >
+            Vaciar lista
+          </button>
+        </div>
+      </form>
+    </dialog>
 
     <script type="module" src="/src/main.js"></script>
   </body>

@@ -191,15 +191,31 @@ async function add(text) {
     if (added && wasEmpty) playAt(state.queue.indexOf(items[0]))
 }
 
-let msgT
-function flash(t) {
-    if (!t) return
-    const el = $('msg')
-    el.textContent = t
-    el.classList.remove('opacity-0', 'translate-y-2')
-    clearTimeout(msgT)
-    msgT = setTimeout(() => el.classList.add('opacity-0', 'translate-y-2'), 4000)
+let msgT, undo = null
+function hideToast() {
+    $('toast').classList.add('opacity-0', 'translate-y-2', 'pointer-events-none')
+    undo = null
 }
+
+// Muestra un aviso; con `action` agrega un botón (por ejemplo, "Deshacer")
+function flash(t, action) {
+    if (!t) return
+    $('msg').textContent = t
+    undo = action?.run || null
+    $('toastAction').textContent = action?.label || ''
+    $('toastAction').classList.toggle('hidden', !action)
+    $('toast').classList.remove('opacity-0', 'translate-y-2', 'pointer-events-none')
+    clearTimeout(msgT)
+    // Los avisos con acción duran más para dar tiempo a reaccionar
+    msgT = setTimeout(hideToast, action ? 6000 : 4000)
+}
+
+$('toastAction').addEventListener('click', () => { const run = undo; clearTimeout(msgT); hideToast(); run?.() })
+// Mientras el cursor está encima, el aviso no se oculta
+$('toast').addEventListener('mouseenter', () => clearTimeout(msgT))
+$('toast').addEventListener('mouseleave', () => { clearTimeout(msgT); msgT = setTimeout(hideToast, 2500) })
+
+const short = (s, n = 40) => s.length > n ? s.slice(0, n - 1) + '…' : s
 
 // ============ Reproducción ============
 function playAt(i, remember = true) {
@@ -229,21 +245,30 @@ function next(auto = false) {
     else if (auto) { playing = false; updatePlayIcon() }
 }
 
-// Al terminar una canción sin repetición activa, sale de la cola y suena la siguiente
-function ended() {
-    if (state.repeat !== 'off') { next(true); return }
+// Quita la canción actual y pasa a la siguiente; si no hay más, detiene y vacía el reproductor
+function removeCurrent() {
     const i = state.index
-    if (i < 0) return
-    state.queue.splice(i, 1)
+    const [item] = state.queue.splice(i, 1)
     history = []
     const n = state.queue.length
     // La siguiente canción ocupa ahora el lugar de la que se quitó
     let to = -1
     if (n && state.shuffle) to = Math.floor(Math.random() * n)
     else if (i < n) to = i
+    else if (n && state.repeat === 'all') to = 0
     state.index = -1
     if (to >= 0) playAt(to, false)
-    else { playing = false; save(); updatePlayIcon() }
+    else {
+        if (ready) player.stopVideo()
+        playing = false; save(); updatePlayIcon()
+    }
+    return item
+}
+
+// Al terminar una canción sin repetición activa, sale de la cola y suena la siguiente
+function ended() {
+    if (state.repeat !== 'off') { next(true); return }
+    if (state.index >= 0) removeCurrent()
 }
 
 function prev() {
@@ -304,10 +329,12 @@ function render() {
 
     const cur = state.queue[state.index]
     $('npTitle').textContent = cur ? cur.title : 'Nada sonando'
-    $('npAuthor').textContent = cur ? cur.author || 'YouTube' : 'Agrega canciones para empezar'
+    $('npAuthor').textContent = cur ? cur.author || 'YouTube'
+        : n ? 'Presiona reproducir para seguir con la cola' : 'Agrega canciones para empezar'
     $('npEq').classList.toggle('hidden', !cur)
     $('npEq').classList.toggle('paused', !playing)
     $('stage').classList.toggle('shadow-[0_24px_80px_-28px_var(--c-accent)]', playing)
+    $('stagePh').classList.toggle('hidden', !!cur)
     $('ftTitle').textContent = cur ? cur.title : ''
     $('ftAuthor').textContent = cur ? cur.author || 'YouTube' : ''
     $('ftThumb').hidden = !cur
@@ -382,24 +409,35 @@ $('list').addEventListener('click', (e) => {
         e.stopPropagation()
         const i = +rm.dataset.rm
         const wasCurrent = i === state.index
-        state.queue.splice(i, 1)
-        history = []
-        if (i < state.index) state.index--
-        if (wasCurrent) {
-            if (state.queue.length) {
-                state.index = Math.min(i, state.queue.length - 1)
-                if (ready) player.loadVideoById(state.queue[state.index].id)
-            } else {
-                state.index = -1
-                if (ready) player.stopVideo()
-                playing = false
-            }
+        const at = wasCurrent && ready ? player.getCurrentTime() : 0
+        let item
+        if (wasCurrent) item = removeCurrent()
+        else {
+            [item] = state.queue.splice(i, 1)
+            history = []
+            if (i < state.index) state.index--
+            save(); render()
         }
-        save(); updatePlayIcon(); return
+        flash(`Se quitó «${short(item.title)}».`, { label: 'Deshacer', run: () => restore(item, i, wasCurrent, at) })
+        return
     }
     const li = e.target.closest('li')
     if (li) playAt(+li.dataset.i)
 })
+
+// Deshacer: la canción vuelve a su lugar; si era la que sonaba, sigue desde el mismo segundo
+function restore(item, i, wasCurrent, at) {
+    const curUid = state.queue[state.index]?.uid
+    state.queue.splice(Math.min(i, state.queue.length), 0, item)
+    history = []
+    if (wasCurrent) {
+        state.index = state.queue.indexOf(item)
+        if (ready) player.loadVideoById({ videoId: item.id, startSeconds: at })
+    } else {
+        state.index = state.queue.findIndex((q) => q.uid === curUid)
+    }
+    save(); render()
+}
 $('list').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.target.matches('li')) playAt(+e.target.dataset.i)
 })
@@ -435,11 +473,40 @@ $('list').addEventListener('drop', (e) => {
 })
 
 $('clearBtn').addEventListener('click', () => {
-    if (!state.queue.length || !confirm('¿Vaciar toda la lista?')) return
+    const n = state.queue.length
+    if (!n) return
+    $('clearDlgText').textContent = n > 1
+        ? `Se quitarán las ${n} canciones de la cola y se detendrá la reproducción.`
+        : 'Se quitará la canción de la cola y se detendrá la reproducción.'
+    // returnValue se conserva entre aperturas; sin esto, cerrar con Esc repetiría la última respuesta
+    $('clearDlg').returnValue = ''
+    $('clearDlg').showModal()
+})
+// Clic fuera del cuadro = cancelar
+$('clearDlg').addEventListener('click', (e) => { if (e.target === $('clearDlg')) $('clearDlg').close('cancel') })
+$('clearDlg').addEventListener('close', () => {
+    if ($('clearDlg').returnValue !== 'confirm') return
+    const snap = { queue: state.queue, index: state.index, at: ready && state.index >= 0 ? player.getCurrentTime() : 0 }
     state.queue = []; state.index = -1; history = []
     if (ready) player.stopVideo()
     playing = false
     save(); updatePlayIcon()
+    flash('Se vació la lista.', {
+        label: 'Deshacer',
+        run: () => {
+            // Si mientras tanto se agregaron canciones, las anteriores vuelven antes que ellas
+            const now = state.index
+            state.queue = [...snap.queue, ...state.queue]
+            history = []
+            if (now >= 0) state.index = now + snap.queue.length
+            else {
+                state.index = snap.index
+                const it = state.queue[snap.index]
+                if (ready && it) player.cueVideoById({ videoId: it.id, startSeconds: snap.at })
+            }
+            save(); render()
+        },
+    })
 })
 
 $('playBtn').addEventListener('click', toggle)
@@ -465,7 +532,8 @@ fill($('seek'))
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') toggleThemeMenu(false)
-    if (['TEXTAREA', 'INPUT'].includes(e.target.tagName)) return
+    // Con el diálogo abierto, el teclado es para sus botones
+    if ($('clearDlg').open || ['TEXTAREA', 'INPUT'].includes(e.target.tagName)) return
     if (e.code === 'Space') { e.preventDefault(); toggle() }
     else if (e.key === 'ArrowRight' && e.shiftKey) next()
     else if (e.key === 'ArrowLeft' && e.shiftKey) prev()

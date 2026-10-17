@@ -14,6 +14,7 @@ Hecho con HTML, JavaScript sin frameworks, [Tailwind CSS v4](https://tailwindcss
 - **Controles completos**: reproducir/pausa, anterior, siguiente, barra de progreso y volumen con botón de silencio.
 - **Aleatorio y repetición**: repetir una sola canción, o repetir toda la lista (en ese modo las canciones no se quitan al terminar).
 - **Reordenar arrastrando** las canciones de la lista (con mouse).
+- **Deshacer**: al quitar una canción o vaciar la lista aparece un aviso con el botón *Deshacer*; vaciar la lista además pide confirmación.
 - **Recuerda tu sesión**: la cola, la canción actual, el volumen y los modos se guardan en `localStorage`.
 - **5 temas de color**: Atardecer, Medianoche, Bosque, Neón y Claro.
 - **Diseño adaptable**: funciona en teléfonos, tablets y escritorio.

@@ -194,8 +194,37 @@
     }
   }
 
+  /* Diálogo: entra con un pequeño desplazamiento y el fondo se oscurece */
+  .dlg[open] {
+    animation: dlg-in 0.18s ease-out;
+  }
+
+  .dlg[open]::backdrop {
+    animation: fade-in 0.18s ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dlg[open],
+    .dlg[open]::backdrop {
+      animation: none;
+    }
+  }
+
   kbd {
     @apply rounded-md border border-b-2 border-line bg-panel2 px-1.5 py-0.5 font-sans text-[11px] text-fg;
+  }
+}
+
+@keyframes dlg-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
   }
 }
 
