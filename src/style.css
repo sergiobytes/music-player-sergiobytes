@@ -277,6 +277,66 @@
     display: none;
   }
 
+  /* En móvil las pestañas llenan su fila y se reparten el ancho según su texto */
+  @media (width < 40rem) {
+    .tab {
+      @apply flex-auto justify-center px-2;
+    }
+  }
+
+  /* Acciones de cada pestaña (vaciar, guardar, importar…) */
+  .hdr-btn {
+    @apply flex flex-none cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] text-muted transition hover:bg-panel2 hover:text-fg;
+  }
+
+  .hdr-btn.hdr-primary {
+    @apply font-semibold text-accent hover:bg-accent/15 hover:text-accent;
+  }
+
+  /* Opción seleccionable (radio) con aspecto de tarjeta */
+  .choice {
+    @apply flex cursor-pointer items-start gap-3 rounded-xl border border-line p-3 transition hover:bg-panel2 has-checked:border-accent has-checked:bg-accent/10 has-disabled:cursor-not-allowed has-disabled:opacity-50 has-disabled:hover:bg-transparent;
+  }
+
+  /* Botones de acción dentro de una fila: aparecen al pasar el mouse, siempre visibles en pantallas táctiles */
+  .row-btn {
+    @apply grid size-8 cursor-pointer place-items-center rounded-lg text-muted opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-canvas/60 hover:text-fg focus-visible:opacity-100 pointer-coarse:opacity-100;
+  }
+
+  .picker-item {
+    @apply flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition hover:bg-panel2;
+  }
+
+  /* Botones de cada fila de playlist */
+  .pl-btn {
+    @apply flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-[13px] font-semibold text-muted transition hover:bg-panel2 hover:text-fg;
+  }
+
+  .pl-btn.pl-primary {
+    @apply text-accent hover:bg-accent/15 hover:text-accent;
+  }
+
+  /* Botones de diálogos y mensajes vacíos */
+  .btn {
+    @apply h-11 cursor-pointer rounded-xl px-4 font-semibold transition active:scale-[0.97] sm:h-10;
+  }
+
+  .btn-accent {
+    @apply bg-accent font-bold text-on-accent hover:brightness-110;
+  }
+
+  .btn-ghost {
+    @apply border border-line hover:bg-panel2;
+  }
+
+  .btn-danger-ghost {
+    @apply text-danger hover:bg-danger/10;
+  }
+
+  .field {
+    @apply h-11 w-full rounded-xl border border-line bg-panel2/80 px-3 text-fg transition placeholder:text-muted focus:border-transparent focus:bg-panel2 focus:outline-2 focus:outline-accent;
+  }
+
   /* Ecualizador animado para la canción que está sonando */
   .eq {
     @apply inline-flex h-3.5 items-end gap-0.5;

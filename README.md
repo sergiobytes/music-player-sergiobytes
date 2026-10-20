@@ -12,11 +12,15 @@ Hecho con HTML, JavaScript sin frameworks, [Tailwind CSS v4](https://tailwindcss
 - **Playlists completas**: pega el enlace de una playlist pública y todos sus videos se suman a la cola.
 - **La cola avanza sola**: cuando una canción termina, sale de la lista y empieza la siguiente.
 - **Historial "Escuchadas"**: las canciones que terminan quedan en la pestaña *Escuchadas* (las últimas 50, sin repetir) para volver a agregarlas a la cola con un clic.
+- **Playlists guardadas**: en la pestaña *Playlists* puedes crear una playlist vacía e ir agregándole canciones, o empezarla con tu cola o con enlaces de YouTube.
+  - Agrega canciones pegando enlaces dentro de la playlist, o con el botón **Agregar a playlist** de cualquier canción de la cola, de *Escuchadas* o de *Sonando ahora*.
+  - **Reproducir** reemplaza la cola (con opción de deshacer) y **Agregar** la suma al final. Tocar una canción de la playlist la reproduce desde ahí.
+  - Se pueden renombrar, eliminar (con deshacer) y respaldar: **Exportar** descarga un archivo `.json` e **Importar** lo restaura, por ejemplo en otro navegador.
 - **Controles completos**: reproducir/pausa, anterior, siguiente, barra de progreso y volumen con botón de silencio.
 - **Aleatorio y repetición**: repetir una sola canción, o repetir toda la lista (en ese modo las canciones no se quitan al terminar).
 - **Reordenar arrastrando** las canciones de la lista (con mouse).
 - **Deshacer**: al quitar una canción o vaciar la lista aparece un aviso con el botón *Deshacer*; vaciar la lista además pide confirmación.
-- **Recuerda tu sesión**: la cola, la canción actual, el historial, el volumen y los modos se guardan en el `localStorage` del navegador (claves `rola-state-v1` y `rola-theme`).
+- **Recuerda tu sesión**: la cola, la canción actual, el historial, el volumen y los modos se guardan en el `localStorage` del navegador (claves `rola-state-v1`, `rola-playlists-v1` y `rola-theme`).
 - **12 temas de color**: 9 oscuros (Atardecer, Medianoche, Bosque, Neón, Océano, Cereza, Café, Grafito y Alto contraste) y 3 claros (Claro, Lavanda y Menta).
 - **Diseño adaptable**: funciona en teléfonos, tablets y escritorio.
 - **Atajos de teclado** para controlar la música sin usar el mouse.
@@ -89,16 +93,37 @@ Vite está configurado con `base: './'` (rutas relativas), así que el sitio fun
 ├── public/
 │   └── favicon.svg
 ├── src/
-│   ├── main.js                    # Lógica: cola, reproductor de YouTube, temas y eventos
-│   └── style.css                  # Tailwind, variables de los temas y componentes
+│   ├── main.js                    # Punto de entrada: conecta las vistas con el estado y arranca el reproductor
+│   ├── style.css                  # Tailwind, variables de los temas y componentes
+│   ├── core/                      # Lógica y datos, sin tocar la pantalla
+│   │   ├── state.js               # Estado guardado (cola, historial, preferencias) y aviso de cambios
+│   │   ├── youtube.js             # Enlaces, lectura de playlists de YouTube y títulos
+│   │   ├── player.js              # Reproductor de YouTube y control de la reproducción
+│   │   ├── queue.js               # Agregar, quitar, vaciar, reordenar y reemplazar la cola
+│   │   └── playlists.js           # Playlists guardadas y su respaldo
+│   └── ui/                        # Pantalla: cada vista se dibuja y maneja sus eventos
+│       ├── dom.js                 # Utilidades compartidas (formato, íconos)
+│       ├── tabs.js                # Pestañas y playlist abierta
+│       ├── toast.js, dialogs.js   # Avisos y diálogo de playlist
+│       ├── themes.js              # Temas de color y su menú
+│       ├── now-playing.js         # Panel "Sonando ahora"
+│       ├── controls.js            # Barra del reproductor y atajos de teclado
+│       ├── add-form.js            # Campo para pegar enlaces
+│       ├── queue-view.js          # Pestaña Cola
+│       ├── recent-view.js         # Pestaña Escuchadas
+│       ├── playlists-view.js      # Pestaña Playlists (lista y detalle)
+│       ├── playlist-actions.js    # Acciones sobre playlists
+│       └── playlist-picker.js     # Menú "Agregar a playlist"
 ├── index.html                     # Estructura de la interfaz
 └── vite.config.js
 ```
 
+Los módulos de `core/` cambian el estado y llaman a `commit()`; las vistas de `ui/` están suscritas y se vuelven a dibujar con cada cambio.
+
 ### Agregar un tema
 
 1. En [`src/style.css`](src/style.css), copia un bloque `[data-theme="..."]` con un nuevo nombre y cambia sus colores.
-2. En [`src/main.js`](src/main.js), agrega el tema al arreglo `THEMES` con su `id`, `name`, `dark` (`true` si es oscuro, para agruparlo en el menú) y los tres colores de muestra.
+2. En [`src/ui/themes.js`](src/ui/themes.js), agrega el tema al arreglo `THEMES` con su `id`, `name`, `dark` (`true` si es oscuro, para agruparlo en el menú) y los tres colores de muestra.
 
 ## Notas
 
@@ -106,3 +131,4 @@ Vite está configurado con `base: './'` (rutas relativas), así que el sitio fun
 - Algunos videos tienen la inserción desactivada por su autor; esos no se pueden reproducir aquí y se saltan.
 - Los títulos y nombres de canal se obtienen del servicio oEmbed de YouTube y se guardan junto con la cola.
 - En teléfonos, el volumen se controla con los botones del dispositivo, y reordenar arrastrando no está disponible en pantallas táctiles.
+- Las playlists viven solo en el navegador donde se crearon. Para pasarlas a otro dispositivo o tener un respaldo, usa **Exportar** e **Importar**.

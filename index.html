@@ -140,6 +140,12 @@
               Nada sonando
             </div>
             <div id="npAuthor" class="mt-0.5 truncate text-sm text-muted"></div>
+            <button id="npSave" type="button" data-pl-add class="hdr-btn hidden -ml-2.5 mt-1.5">
+              <svg viewBox="0 0 24 24" class="size-4 fill-current" aria-hidden="true">
+                <path d="M14 10H3v2h11v-2zm0-4H3v2h11V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM3 16h7v-2H3v2z" />
+              </svg>
+              Agregar a playlist
+            </button>
           </div>
 
           <div id="upNext" class="empty:hidden max-md:hidden"></div>
@@ -168,8 +174,9 @@
           class="px-1 pt-4 pb-6 sm:px-3 md:col-start-1 md:row-start-1 md:overflow-y-auto md:pt-3"
         >
           <h2 id="listTitle" class="sr-only">Lista de reproducción</h2>
-          <div class="flex items-center justify-between gap-3 px-2 pt-1.5 pb-3">
-            <div role="tablist" aria-label="Listas" class="flex min-w-0 gap-1 rounded-xl border border-line bg-panel p-1">
+          <!-- En móvil las pestañas ocupan su propia fila y las acciones bajan a la siguiente -->
+          <div class="flex flex-wrap items-center justify-between gap-2 px-2 pt-1.5 pb-3">
+            <div role="tablist" aria-label="Listas" class="flex min-w-0 gap-1 rounded-xl border border-line bg-panel p-1 max-sm:w-full">
               <button
                 id="tabQueue"
                 type="button"
@@ -190,33 +197,146 @@
               >
                 Escuchadas <span id="recentCount" class="tab-count"></span>
               </button>
+              <button
+                id="tabPlaylists"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                aria-controls="playlistsPanel"
+                class="tab"
+              >
+                Playlists <span id="playlistsCount" class="tab-count"></span>
+              </button>
             </div>
-            <button
-              id="clearBtn"
-              type="button"
-              title="Vaciar lista"
-              class="flex flex-none cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] text-muted transition hover:bg-panel2 hover:text-danger"
-            >
-              <svg viewBox="0 0 24 24" class="size-4 fill-current" aria-hidden="true">
-                <path
-                  d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"
+
+            <div class="flex items-center gap-1 max-sm:w-full max-sm:justify-end">
+              <button id="clearBtn" type="button" title="Vaciar lista" class="hdr-btn hover:text-danger">
+                <svg viewBox="0 0 24 24" class="size-4 fill-current" aria-hidden="true">
+                  <path
+                    d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"
+                  />
+                </svg>
+                <span class="max-sm:sr-only">Vaciar lista</span>
+              </button>
+              <button id="clearRecentBtn" type="button" title="Borrar historial" class="hdr-btn hidden hover:text-danger">
+                <svg viewBox="0 0 24 24" class="size-4 fill-current" aria-hidden="true">
+                  <path
+                    d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"
+                  />
+                </svg>
+                <span class="max-sm:sr-only">Borrar historial</span>
+              </button>
+              <button id="plCreateBtn" type="button" title="Crear una playlist con la cola o con enlaces de YouTube" class="hdr-btn hdr-primary hidden">
+                <svg viewBox="0 0 24 24" class="size-4 fill-current" aria-hidden="true">
+                  <path d="M14 10H3v2h11v-2zm0-4H3v2h11V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM3 16h7v-2H3v2z" />
+                </svg>
+                Crear playlist
+              </button>
+              <button id="plImportBtn" type="button" title="Restaurar playlists desde un archivo de respaldo" class="hdr-btn hidden">
+                <svg viewBox="0 0 24 24" class="size-4 fill-current" aria-hidden="true">
+                  <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" />
+                </svg>
+                <span class="max-sm:sr-only">Importar</span>
+              </button>
+              <button id="plExportBtn" type="button" title="Descargar un respaldo de tus playlists" class="hdr-btn hidden">
+                <svg viewBox="0 0 24 24" class="size-4 fill-current" aria-hidden="true">
+                  <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                </svg>
+                <span class="max-sm:sr-only">Exportar</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="playlistsPanel" role="tabpanel" aria-labelledby="tabPlaylists" hidden>
+            <div id="plListView">
+              <ul id="playlistsList" class="flex flex-col gap-0.5"></ul>
+              <div
+                id="playlistsEmpty"
+                class="mx-auto flex max-w-sm flex-col items-center px-5 py-12 text-center md:py-20"
+              >
+                <div class="mb-5 grid size-16 place-items-center rounded-2xl bg-panel2 text-muted">
+                  <svg viewBox="0 0 24 24" class="size-8 fill-current" aria-hidden="true">
+                    <path
+                      d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"
+                    />
+                  </svg>
+                </div>
+                <h3 class="text-base font-bold">Aún no tienes playlists</h3>
+                <p class="mt-1.5 text-sm leading-relaxed text-muted">
+                  Crea una y ve agregándole canciones, o empieza con tu cola o
+                  con enlaces de YouTube. Se guardan en este navegador.
+                </p>
+                <button id="plEmptyCreate" type="button" class="btn btn-accent mt-5">Crear playlist</button>
+                <button
+                  id="plEmptyRestore"
+                  type="button"
+                  class="mt-4 cursor-pointer text-xs text-muted underline underline-offset-2 hover:text-fg"
+                >
+                  Restaurar desde un archivo de respaldo
+                </button>
+              </div>
+            </div>
+
+            <!-- Una playlist abierta: sus canciones y cómo agregarle más -->
+            <div id="plDetail" hidden>
+              <button id="plBack" type="button" class="hdr-btn -mt-1 mb-2">
+                <svg viewBox="0 0 24 24" class="size-4 fill-current" aria-hidden="true">
+                  <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+                </svg>
+                Todas las playlists
+              </button>
+              <!-- En móvil los botones bajan a su propia fila; en escritorio van junto a la portada -->
+              <div class="grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-x-4 gap-y-3 px-2 sm:grid-cols-[10rem_minmax(0,1fr)]">
+                <div id="plDetailCover" class="sm:row-span-2 sm:self-center"></div>
+                <div class="min-w-0 sm:self-end">
+                  <h3 id="plDetailName" class="truncate text-xl font-bold sm:text-2xl">Playlist</h3>
+                  <p id="plDetailMeta" class="mt-0.5 truncate text-sm text-muted"></p>
+                </div>
+                <div class="col-span-2 sm:col-span-1 sm:col-start-2 sm:self-start">
+                  <div class="flex flex-wrap gap-2">
+                    <button id="plDetailPlay" type="button" class="btn btn-accent flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-50">
+                      <svg viewBox="0 0 24 24" class="size-4 fill-current" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                      Reproducir
+                    </button>
+                    <button id="plDetailAppend" type="button" title="Agregar al final de la cola" class="btn btn-ghost flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-50">
+                      <svg viewBox="0 0 24 24" class="size-4 fill-current" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
+                      <span class="max-sm:sr-only">A la cola</span>
+                    </button>
+                    <button id="plDetailEdit" type="button" title="Renombrar o eliminar" class="btn btn-ghost grid place-items-center px-3">
+                      <svg viewBox="0 0 24 24" class="size-4 fill-current" aria-hidden="true">
+                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                      </svg>
+                      <span class="sr-only">Editar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <form id="plAddForm" class="mt-5 flex gap-2 px-2">
+                <input
+                  id="plAddLinks"
+                  type="text"
+                  autocomplete="off"
+                  spellcheck="false"
+                  aria-label="Enlaces de YouTube para agregar a esta playlist"
+                  placeholder="Pega enlaces de videos o playlists para agregarlos aquí"
+                  class="field min-w-0 flex-1"
                 />
-              </svg>
-              <span class="max-sm:sr-only">Vaciar lista</span>
-            </button>
-            <button
-              id="clearRecentBtn"
-              type="button"
-              title="Borrar historial"
-              class="flex hidden flex-none cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] text-muted transition hover:bg-panel2 hover:text-danger"
-            >
-              <svg viewBox="0 0 24 24" class="size-4 fill-current" aria-hidden="true">
-                <path
-                  d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"
-                />
-              </svg>
-              <span class="max-sm:sr-only">Borrar historial</span>
-            </button>
+                <button type="submit" class="btn btn-ghost flex-none">Agregar</button>
+              </form>
+              <ol id="plSongs" class="mt-3 flex flex-col gap-0.5"></ol>
+              <p id="plSongsEmpty" class="mx-auto max-w-sm px-5 py-10 text-center text-sm leading-relaxed text-muted">
+                Esta playlist está vacía. Pega enlaces arriba, o usa el botón
+                «Agregar a playlist» en cualquier canción de la cola, de
+                Escuchadas o de «Sonando ahora».
+              </p>
+            </div>
+            <input
+              id="plFile"
+              type="file"
+              accept=".json,application/json"
+              aria-label="Archivo de respaldo de playlists"
+              hidden
+            />
           </div>
 
           <div id="recentPanel" role="tabpanel" aria-labelledby="tabRecent" hidden>
@@ -359,6 +479,14 @@
       </footer>
     </div>
 
+    <!-- Menú "Agregar a playlist" (se posiciona junto al botón que lo abre) -->
+    <div
+      id="plPicker"
+      role="menu"
+      aria-label="Agregar a playlist"
+      class="fixed z-40 hidden max-h-80 w-64 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-panel p-1.5 shadow-2xl"
+    ></div>
+
     <!-- Avisos -->
     <div
       class="pointer-events-none fixed inset-x-0 bottom-36 z-40 flex justify-center px-4 md:bottom-28"
@@ -413,6 +541,64 @@
           >
             Vaciar lista
           </button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Guardar, renombrar o eliminar una playlist, o importarla desde YouTube -->
+    <dialog
+      id="plDlg"
+      aria-labelledby="plDlgTitle"
+      class="dlg m-auto w-[min(36rem,calc(100%-2rem))] rounded-2xl border border-line bg-panel p-0 text-fg shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+    >
+      <form method="dialog" class="p-5 sm:p-6">
+        <h2 id="plDlgTitle" class="text-base font-bold">Playlist</h2>
+        <p id="plDlgText" class="mt-1 text-sm leading-relaxed text-muted"></p>
+        <fieldset id="plSource" class="mt-4">
+          <legend class="mb-1.5 text-xs font-semibold text-muted">Canciones</legend>
+          <div class="grid gap-2 sm:grid-cols-3">
+            <label class="choice">
+              <input id="plSrcEmpty" type="radio" name="plSrc" value="empty" class="mt-1 accent-accent" />
+              <span>
+                <span class="block text-sm font-semibold">Vacía</span>
+                <span class="block text-xs text-muted">Agregas canciones después</span>
+              </span>
+            </label>
+            <label class="choice">
+              <input id="plSrcQueue" type="radio" name="plSrc" value="queue" class="mt-1 accent-accent" />
+              <span>
+                <span class="block text-sm font-semibold">La cola actual</span>
+                <span id="plSrcQueueText" class="block text-xs text-muted"></span>
+              </span>
+            </label>
+            <label class="choice">
+              <input id="plSrcLinks" type="radio" name="plSrc" value="links" class="mt-1 accent-accent" />
+              <span>
+                <span class="block text-sm font-semibold">Enlaces de YouTube</span>
+                <span class="block text-xs text-muted">Videos o playlists</span>
+              </span>
+            </label>
+          </div>
+          <textarea
+            id="plLinks"
+            rows="3"
+            spellcheck="false"
+            aria-label="Enlaces de YouTube"
+            placeholder="Pega uno o varios enlaces, uno por línea"
+            class="field mt-2 h-auto resize-y py-2.5 leading-6"
+          ></textarea>
+        </fieldset>
+        <label class="mt-4 block">
+          <span class="mb-1.5 block text-xs font-semibold text-muted">Nombre</span>
+          <input id="plName" type="text" maxlength="60" autocomplete="off" class="field" />
+        </label>
+        <!-- Guardar es el único botón de envío, así Enter nunca elimina por accidente -->
+        <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+          <button id="plDelete" type="button" class="btn btn-danger-ghost sm:mr-auto">
+            Eliminar playlist
+          </button>
+          <button id="plCancel" type="button" class="btn btn-ghost sm:ml-auto">Cancelar</button>
+          <button id="plOk" value="ok" class="btn btn-accent">Guardar</button>
         </div>
       </form>
     </dialog>
