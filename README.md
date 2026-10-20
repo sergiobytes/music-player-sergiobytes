@@ -16,7 +16,7 @@ Hecho con HTML, JavaScript sin frameworks, [Tailwind CSS v4](https://tailwindcss
 - **Reordenar arrastrando** las canciones de la lista (con mouse).
 - **Deshacer**: al quitar una canción o vaciar la lista aparece un aviso con el botón *Deshacer*; vaciar la lista además pide confirmación.
 - **Recuerda tu sesión**: la cola, la canción actual, el volumen y los modos se guardan en `localStorage`.
-- **5 temas de color**: Atardecer, Medianoche, Bosque, Neón y Claro.
+- **12 temas de color**: 9 oscuros (Atardecer, Medianoche, Bosque, Neón, Océano, Cereza, Café, Grafito y Alto contraste) y 3 claros (Claro, Lavanda y Menta).
 - **Diseño adaptable**: funciona en teléfonos, tablets y escritorio.
 - **Atajos de teclado** para controlar la música sin usar el mouse.
 - Si un video no permite reproducirse fuera de YouTube, se marca y se salta automáticamente.
@@ -97,7 +97,7 @@ Vite está configurado con `base: './'` (rutas relativas), así que el sitio fun
 ### Agregar un tema
 
 1. En [`src/style.css`](src/style.css), copia un bloque `[data-theme="..."]` con un nuevo nombre y cambia sus colores.
-2. En [`src/main.js`](src/main.js), agrega el tema al arreglo `THEMES` con su `id`, `name` y los tres colores de muestra.
+2. En [`src/main.js`](src/main.js), agrega el tema al arreglo `THEMES` con su `id`, `name`, `dark` (`true` si es oscuro, para agruparlo en el menú) y los tres colores de muestra.
 
 ## Notas
 

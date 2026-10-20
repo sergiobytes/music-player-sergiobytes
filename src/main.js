@@ -4,11 +4,18 @@ const $ = (id) => document.getElementById(id)
 
 // ============ Temas ============
 const THEMES = [
-    { id: 'atardecer', name: 'Atardecer', colors: ['#121214', '#ff7a45', '#ffb347'] },
-    { id: 'medianoche', name: 'Medianoche', colors: ['#0d1020', '#7c8cff', '#c084fc'] },
-    { id: 'bosque', name: 'Bosque', colors: ['#0f1512', '#4fd1a5', '#c6e86b'] },
-    { id: 'neon', name: 'Neón', colors: ['#0b0b0f', '#ff3ea5', '#00e5ff'] },
-    { id: 'claro', name: 'Claro', colors: ['#f6f5f2', '#e2572b', '#f29d38'] },
+    { id: 'atardecer', name: 'Atardecer', dark: true, colors: ['#121214', '#ff7a45', '#ffb347'] },
+    { id: 'medianoche', name: 'Medianoche', dark: true, colors: ['#0d1020', '#7c8cff', '#c084fc'] },
+    { id: 'bosque', name: 'Bosque', dark: true, colors: ['#0f1512', '#4fd1a5', '#c6e86b'] },
+    { id: 'neon', name: 'Neón', dark: true, colors: ['#0b0b0f', '#ff3ea5', '#00e5ff'] },
+    { id: 'oceano', name: 'Océano', dark: true, colors: ['#08141a', '#22d3ee', '#60a5fa'] },
+    { id: 'cereza', name: 'Cereza', dark: true, colors: ['#150b0f', '#ff4d79', '#ff9eb5'] },
+    { id: 'cafe', name: 'Café', dark: true, colors: ['#14100c', '#d9a066', '#f0c987'] },
+    { id: 'grafito', name: 'Grafito', dark: true, colors: ['#0e0e0f', '#ffffff', '#a1a1a6'] },
+    { id: 'contraste', name: 'Alto contraste', dark: true, colors: ['#000000', '#ffd60a', '#ffffff'] },
+    { id: 'claro', name: 'Claro', dark: false, colors: ['#f6f5f2', '#e2572b', '#f29d38'] },
+    { id: 'lavanda', name: 'Lavanda', dark: false, colors: ['#f6f4fb', '#7c3aed', '#c026d3'] },
+    { id: 'menta', name: 'Menta', dark: false, colors: ['#f2f8f5', '#0b7f58', '#0e9f9e'] },
 ]
 const THEME_KEY = 'rola-theme'
 
@@ -23,7 +30,7 @@ function renderThemeMenu() {
     // Color de la barra del navegador en móviles
     const theme = THEMES.find((t) => t.id === current)
     if (theme) document.querySelector('meta[name="theme-color"]').content = theme.colors[0]
-    $('themeMenu').innerHTML = THEMES.map((t) => `
+    const item = (t) => `
     <button type="button" role="menuitemradio" aria-checked="${t.id === current}" data-theme-id="${t.id}"
       class="flex w-full cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-left text-sm transition hover:bg-panel2 ${t.id === current ? 'bg-panel2/60 text-accent font-semibold' : 'text-fg'}">
       <span class="flex overflow-hidden rounded-md ring-1 ring-line">
@@ -31,7 +38,11 @@ function renderThemeMenu() {
       </span>
       <span class="flex-1">${t.name}</span>
       ${t.id === current ? '<svg viewBox="0 0 24 24" class="size-4 fill-current"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>' : ''}
-    </button>`).join('')
+    </button>`
+    const group = (label, list) => `
+    <div role="presentation" class="px-2.5 pt-2.5 pb-1 text-[11px] font-semibold tracking-[0.18em] text-muted uppercase">${label}</div>
+    ${list.map(item).join('')}`
+    $('themeMenu').innerHTML = group('Oscuros', THEMES.filter((t) => t.dark)) + group('Claros', THEMES.filter((t) => !t.dark))
 }
 
 function toggleThemeMenu(open) {

@@ -79,6 +79,98 @@
   --c-danger: #d33a4a;
   color-scheme: light;
 }
+[data-theme="oceano"] {
+  --c-bg: #08141a;
+  --c-panel: #0d1e26;
+  --c-panel2: #132a35;
+  --c-text: #e3f4f8;
+  --c-muted: #86a9b5;
+  --c-line: #1c3a47;
+  --c-accent: #22d3ee;
+  --c-accent2: #60a5fa;
+  --c-on-accent: #04161c;
+  --c-danger: #ff6b7a;
+  color-scheme: dark;
+}
+[data-theme="cereza"] {
+  --c-bg: #150b0f;
+  --c-panel: #1f1116;
+  --c-panel2: #2a1720;
+  --c-text: #f8e9ee;
+  --c-muted: #b38d99;
+  --c-line: #3a2029;
+  --c-accent: #ff4d79;
+  --c-accent2: #ff9eb5;
+  --c-on-accent: #1a0509;
+  --c-danger: #ff8a4c;
+  color-scheme: dark;
+}
+[data-theme="cafe"] {
+  --c-bg: #14100c;
+  --c-panel: #1c1611;
+  --c-panel2: #261e17;
+  --c-text: #f3ebe2;
+  --c-muted: #a8998a;
+  --c-line: #33291f;
+  --c-accent: #d9a066;
+  --c-accent2: #f0c987;
+  --c-on-accent: #1a1006;
+  --c-danger: #ff6b6b;
+  color-scheme: dark;
+}
+[data-theme="grafito"] {
+  --c-bg: #0e0e0f;
+  --c-panel: #171718;
+  --c-panel2: #212123;
+  --c-text: #dcdce0;
+  --c-muted: #8e8e93;
+  --c-line: #2c2c2f;
+  --c-accent: #ffffff;
+  --c-accent2: #a1a1a6;
+  --c-on-accent: #0e0e0f;
+  --c-danger: #ff5c5c;
+  color-scheme: dark;
+}
+/* Alto contraste: pensado para pantallas con mucho reflejo o baja visión */
+[data-theme="contraste"] {
+  --c-bg: #000000;
+  --c-panel: #0a0a0a;
+  --c-panel2: #1a1a1a;
+  --c-text: #ffffff;
+  --c-muted: #d0d0d0;
+  --c-line: #5c5c5c;
+  --c-accent: #ffd60a;
+  --c-accent2: #ffe866;
+  --c-on-accent: #000000;
+  --c-danger: #ff7070;
+  color-scheme: dark;
+}
+[data-theme="lavanda"] {
+  --c-bg: #f6f4fb;
+  --c-panel: #ffffff;
+  --c-panel2: #ece8f6;
+  --c-text: #1f1b2e;
+  --c-muted: #655f7a;
+  --c-line: #dcd6ea;
+  --c-accent: #7c3aed;
+  --c-accent2: #c026d3;
+  --c-on-accent: #ffffff;
+  --c-danger: #d33a4a;
+  color-scheme: light;
+}
+[data-theme="menta"] {
+  --c-bg: #f2f8f5;
+  --c-panel: #ffffff;
+  --c-panel2: #e3efe9;
+  --c-text: #142019;
+  --c-muted: #56695f;
+  --c-line: #d0e2d9;
+  --c-accent: #0b7f58;
+  --c-accent2: #0e9f9e;
+  --c-on-accent: #ffffff;
+  --c-danger: #c8323f;
+  color-scheme: light;
+}
 
 @layer base {
   /* Resplandor ambiental tomado de los colores del tema */
