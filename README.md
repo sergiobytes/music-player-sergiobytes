@@ -11,11 +11,12 @@ Hecho con HTML, JavaScript sin frameworks, [Tailwind CSS v4](https://tailwindcss
 - **Cola de reproducción**: pega uno o varios enlaces a la vez (separados por espacios, comas o saltos de línea).
 - **Playlists completas**: pega el enlace de una playlist pública y todos sus videos se suman a la cola.
 - **La cola avanza sola**: cuando una canción termina, sale de la lista y empieza la siguiente.
+- **Historial "Escuchadas"**: las canciones que terminan quedan en la pestaña *Escuchadas* (las últimas 50, sin repetir) para volver a agregarlas a la cola con un clic.
 - **Controles completos**: reproducir/pausa, anterior, siguiente, barra de progreso y volumen con botón de silencio.
 - **Aleatorio y repetición**: repetir una sola canción, o repetir toda la lista (en ese modo las canciones no se quitan al terminar).
 - **Reordenar arrastrando** las canciones de la lista (con mouse).
 - **Deshacer**: al quitar una canción o vaciar la lista aparece un aviso con el botón *Deshacer*; vaciar la lista además pide confirmación.
-- **Recuerda tu sesión**: la cola, la canción actual, el volumen y los modos se guardan en `localStorage`.
+- **Recuerda tu sesión**: la cola, la canción actual, el historial, el volumen y los modos se guardan en el `localStorage` del navegador (claves `rola-state-v1` y `rola-theme`).
 - **12 temas de color**: 9 oscuros (Atardecer, Medianoche, Bosque, Neón, Océano, Cereza, Café, Grafito y Alto contraste) y 3 claros (Claro, Lavanda y Menta).
 - **Diseño adaptable**: funciona en teléfonos, tablets y escritorio.
 - **Atajos de teclado** para controlar la música sin usar el mouse.

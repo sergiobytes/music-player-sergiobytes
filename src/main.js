@@ -68,10 +68,11 @@ const VOL_HIGH = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5
 const VOL_LOW = '<path d="M5 9v6h4l5 5V4L9 9H5zm13.5 3A4.5 4.5 0 0 0 16 8v8a4.5 4.5 0 0 0 2.5-4z"/>'
 const VOL_MUTE = '<path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.5 2.5V12zm2.5 0c0 .9-.2 1.8-.5 2.6l1.5 1.5A8.8 8.8 0 0 0 21 12a9 9 0 0 0-7-8.8v2.1a7 7 0 0 1 5 6.7zM4.3 3 3 4.3 7.7 9H3v6h4l5 5v-6.7l4.3 4.3c-.7.5-1.4.9-2.3 1.2v2.1a9 9 0 0 0 3.7-1.8l2 2 1.3-1.3-9-9L4.3 3zM12 4 9.9 6.1 12 8.2V4z"/>'
 
-let state = { queue: [], index: -1, shuffle: false, repeat: 'off', volume: 80 }
+let state = { queue: [], index: -1, shuffle: false, repeat: 'off', volume: 80, recent: [] }
 try {
     const s = JSON.parse(localStorage.getItem(KEY))
     if (s && Array.isArray(s.queue)) state = { ...state, ...s }
+    if (!Array.isArray(state.recent)) state.recent = []
 } catch (e) { }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)) } catch (e) { } }
 
@@ -168,6 +169,8 @@ function queueTitle(item) {
     }
 }
 
+const newItem = (id, title = 'Cargando título…', author = '') => ({ id, title, author, uid: Math.random().toString(36).slice(2) })
+
 async function add(text) {
     const parts = text.split(/[\s,]+/).filter(Boolean)
     const ids = []
@@ -187,7 +190,7 @@ async function add(text) {
         if (id) ids.push(id)
         else bad++
     }
-    const items = ids.map((id) => ({ id, title: 'Cargando título…', author: '', uid: Math.random().toString(36).slice(2) }))
+    const items = ids.map((id) => newItem(id))
     const wasEmpty = state.index < 0 || !state.queue.length
     state.queue.push(...items)
     items.forEach(queueTitle)
@@ -279,10 +282,19 @@ function removeCurrent() {
     return item
 }
 
-// Al terminar una canción sin repetición activa, sale de la cola y suena la siguiente
+// Historial de canciones que terminaron y salieron de la cola (la más reciente primero, sin repetir)
+const RECENT_MAX = 50
+function addRecent(it) {
+    const entry = { id: it.id, title: it.title, author: it.author || '', at: Date.now() }
+    state.recent = [entry, ...state.recent.filter((r) => r.id !== it.id)].slice(0, RECENT_MAX)
+}
+
+// Al terminar una canción sin repetición activa, pasa al historial, sale de la cola y suena la siguiente
 function ended() {
     if (state.repeat !== 'off') { next(true); return }
-    if (state.index >= 0) removeCurrent()
+    if (state.index < 0) return
+    addRecent(state.queue[state.index])
+    removeCurrent()
 }
 
 function prev() {
@@ -318,12 +330,14 @@ const eq = (paused) => `<span class="eq ${paused ? 'paused' : ''}"><span></span>
 // Pinta la parte recorrida de una barra (progreso o volumen)
 const fill = (el) => el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min)) * 100 + '%')
 
+let tab = 'queue'
+
 function render() {
     const n = state.queue.length
     $('empty').classList.toggle('hidden', n > 0)
-    $('clearBtn').classList.toggle('hidden', !n)
-    $('count').classList.toggle('hidden', !n)
-    $('count').textContent = n
+    $('clearBtn').classList.toggle('hidden', !n || tab !== 'queue')
+    $('count').textContent = n || ''
+    renderRecent()
     $('list').innerHTML = state.queue.map((it, i) => {
         const cur = i === state.index
         return `
@@ -383,6 +397,55 @@ function render() {
     $('repBtn').classList.toggle('rep-one', state.repeat === 'one')
     $('repBtn').title = { off: 'Repetir', all: 'Repetir: toda la lista', one: 'Repetir: una canción' }[state.repeat]
     document.title = cur && playing ? '▶ ' + cur.title : 'Rola'
+}
+
+const rtf = new Intl.RelativeTimeFormat('es', { numeric: 'auto' })
+function since(t) {
+    const s = (Date.now() - t) / 1000
+    if (s < 60) return 'hace un momento'
+    if (s < 3600) return rtf.format(-Math.floor(s / 60), 'minute')
+    if (s < 86400) return rtf.format(-Math.floor(s / 3600), 'hour')
+    return rtf.format(-Math.floor(s / 86400), 'day')
+}
+
+function renderRecent() {
+    const r = state.recent
+    $('recentCount').textContent = r.length || ''
+    $('recentEmpty').classList.toggle('hidden', r.length > 0)
+    $('clearRecentBtn').classList.toggle('hidden', !r.length || tab !== 'recent')
+    if (tab !== 'recent') return
+    const inQueue = new Set(state.queue.map((q) => q.id))
+    $('recentList').innerHTML = r.map((it, i) => `
+    <li data-r="${i}" tabindex="0" title="Agregar a la cola"
+      class="group grid cursor-pointer grid-cols-[4rem_minmax(0,1fr)_auto] items-center gap-3 rounded-xl p-2 transition-colors hover:bg-panel sm:grid-cols-[5rem_minmax(0,1fr)_auto]">
+      <img src="${thumb(it.id)}" alt="" loading="lazy" class="aspect-video w-full rounded-md bg-panel2 object-cover">
+      <span class="min-w-0">
+        <span class="block truncate text-sm font-medium" title="${esc(it.title)}">${esc(it.title)}</span>
+        <span class="block truncate text-xs text-muted">${esc(it.author || 'YouTube')} · ${since(it.at)}${inQueue.has(it.id) ? ' · <span class="text-accent">En la cola</span>' : ''}</span>
+      </span>
+      <span class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[13px] font-semibold text-muted transition group-hover:bg-panel2 group-hover:text-fg">
+        <svg viewBox="0 0 24 24" class="size-4 fill-current"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        <span class="max-sm:sr-only">Agregar</span>
+      </span>
+    </li>`).join('')
+}
+
+function setTab(t) {
+    tab = t
+    $('tabQueue').setAttribute('aria-selected', String(t === 'queue'))
+    $('tabRecent').setAttribute('aria-selected', String(t === 'recent'))
+    $('queuePanel').hidden = t !== 'queue'
+    $('recentPanel').hidden = t !== 'recent'
+    render()
+}
+
+// Vuelve a poner una canción del historial al final de la cola; si no sonaba nada, arranca
+function requeue(r) {
+    const wasEmpty = state.index < 0 || !state.queue.length
+    state.queue.push(newItem(r.id, r.title, r.author))
+    save(); render()
+    flash(`Se agregó «${short(r.title)}» a la cola.`)
+    if (wasEmpty) playAt(state.queue.length - 1)
 }
 
 function updatePlayIcon() { $('playIcon').innerHTML = playing ? PAUSE : PLAY; render() }
@@ -458,6 +521,31 @@ $('list').addEventListener('keydown', (e) => {
 $('upNext').addEventListener('click', (e) => {
     const b = e.target.closest('[data-i]')
     if (b) playAt(+b.dataset.i)
+})
+
+// Historial
+$('tabQueue').addEventListener('click', () => setTab('queue'))
+$('tabRecent').addEventListener('click', () => setTab('recent'))
+$('recentList').addEventListener('click', (e) => {
+    const li = e.target.closest('[data-r]')
+    if (li) requeue(state.recent[+li.dataset.r])
+})
+$('recentList').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.matches('[data-r]')) requeue(state.recent[+e.target.dataset.r])
+})
+$('clearRecentBtn').addEventListener('click', () => {
+    const prev = state.recent
+    state.recent = []
+    save(); render()
+    flash('Se borró el historial.', {
+        label: 'Deshacer',
+        run: () => {
+            // Si mientras tanto terminó otra canción, queda arriba de las recuperadas
+            const ids = new Set(state.recent.map((r) => r.id))
+            state.recent = [...state.recent, ...prev.filter((r) => !ids.has(r.id))].slice(0, RECENT_MAX)
+            save(); render()
+        },
+    })
 })
 
 // Reordenar arrastrando

@@ -167,15 +167,29 @@
           aria-labelledby="listTitle"
           class="px-1 pt-4 pb-6 sm:px-3 md:col-start-1 md:row-start-1 md:overflow-y-auto md:pt-3"
         >
+          <h2 id="listTitle" class="sr-only">Lista de reproducción</h2>
           <div class="flex items-center justify-between gap-3 px-2 pt-1.5 pb-3">
-            <div class="flex min-w-0 items-center gap-2">
-              <h2 id="listTitle" class="truncate text-lg font-bold">
-                Lista de reproducción
-              </h2>
-              <span
-                id="count"
-                class="hidden rounded-full bg-panel2 px-2 py-0.5 text-xs font-semibold text-muted tabular-nums"
-              ></span>
+            <div role="tablist" aria-label="Listas" class="flex min-w-0 gap-1 rounded-xl border border-line bg-panel p-1">
+              <button
+                id="tabQueue"
+                type="button"
+                role="tab"
+                aria-selected="true"
+                aria-controls="queuePanel"
+                class="tab"
+              >
+                Cola <span id="count" class="tab-count"></span>
+              </button>
+              <button
+                id="tabRecent"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                aria-controls="recentPanel"
+                class="tab"
+              >
+                Escuchadas <span id="recentCount" class="tab-count"></span>
+              </button>
             </div>
             <button
               id="clearBtn"
@@ -190,33 +204,69 @@
               </svg>
               <span class="max-sm:sr-only">Vaciar lista</span>
             </button>
+            <button
+              id="clearRecentBtn"
+              type="button"
+              title="Borrar historial"
+              class="flex hidden flex-none cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] text-muted transition hover:bg-panel2 hover:text-danger"
+            >
+              <svg viewBox="0 0 24 24" class="size-4 fill-current" aria-hidden="true">
+                <path
+                  d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"
+                />
+              </svg>
+              <span class="max-sm:sr-only">Borrar historial</span>
+            </button>
           </div>
 
-          <ol id="list" class="flex flex-col gap-0.5"></ol>
-
-          <div
-            id="empty"
-            class="mx-auto flex max-w-sm flex-col items-center px-5 py-12 text-center md:py-20"
-          >
+          <div id="recentPanel" role="tabpanel" aria-labelledby="tabRecent" hidden>
+            <ol id="recentList" class="flex flex-col gap-0.5"></ol>
             <div
-              class="mb-5 grid size-16 place-items-center rounded-2xl bg-gradient-to-br from-accent to-accent2 text-on-accent shadow-xl shadow-accent/25"
+              id="recentEmpty"
+              class="mx-auto flex max-w-sm flex-col items-center px-5 py-12 text-center md:py-20"
             >
-              <svg viewBox="0 0 24 24" class="size-8 fill-current" aria-hidden="true">
-                <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
-              </svg>
+              <div class="mb-5 grid size-16 place-items-center rounded-2xl bg-panel2 text-muted">
+                <svg viewBox="0 0 24 24" class="size-8 fill-current" aria-hidden="true">
+                  <path
+                    d="M13 3a9 9 0 0 0-9 9H1l3.9 3.9L9 12H6a7 7 0 1 1 2.06 4.94l-1.42 1.42A9 9 0 1 0 13 3Zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12Z"
+                  />
+                </svg>
+              </div>
+              <h3 class="text-base font-bold">Aún no hay canciones escuchadas</h3>
+              <p class="mt-1.5 text-sm leading-relaxed text-muted">
+                Cuando una canción termina y sale de la cola, aparece aquí para
+                que puedas volver a agregarla.
+              </p>
             </div>
-            <h3 class="text-base font-bold">Tu lista está vacía</h3>
-            <p class="mt-1.5 text-sm leading-relaxed text-muted">
-              Pega enlaces de YouTube arriba: se van sumando a la cola sin
-              interrumpir lo que está sonando y salen de ella al terminar.
-            </p>
-            <ul class="mt-5 flex flex-wrap justify-center gap-1.5 text-xs text-muted">
-              <li class="rounded-full border border-line px-2.5 py-1">youtube.com/watch?v=…</li>
-              <li class="rounded-full border border-line px-2.5 py-1">youtu.be/…</li>
-              <li class="rounded-full border border-line px-2.5 py-1">/shorts/…</li>
-              <li class="rounded-full border border-line px-2.5 py-1">music.youtube.com</li>
-              <li class="rounded-full border border-line px-2.5 py-1">playlist?list=…</li>
-            </ul>
+          </div>
+
+          <div id="queuePanel" role="tabpanel" aria-labelledby="tabQueue">
+            <ol id="list" class="flex flex-col gap-0.5"></ol>
+
+            <div
+              id="empty"
+              class="mx-auto flex max-w-sm flex-col items-center px-5 py-12 text-center md:py-20"
+            >
+              <div
+                class="mb-5 grid size-16 place-items-center rounded-2xl bg-gradient-to-br from-accent to-accent2 text-on-accent shadow-xl shadow-accent/25"
+              >
+                <svg viewBox="0 0 24 24" class="size-8 fill-current" aria-hidden="true">
+                  <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-bold">Tu lista está vacía</h3>
+              <p class="mt-1.5 text-sm leading-relaxed text-muted">
+                Pega enlaces de YouTube arriba: se van sumando a la cola sin
+                interrumpir lo que está sonando y salen de ella al terminar.
+              </p>
+              <ul class="mt-5 flex flex-wrap justify-center gap-1.5 text-xs text-muted">
+                <li class="rounded-full border border-line px-2.5 py-1">youtube.com/watch?v=…</li>
+                <li class="rounded-full border border-line px-2.5 py-1">youtu.be/…</li>
+                <li class="rounded-full border border-line px-2.5 py-1">/shorts/…</li>
+                <li class="rounded-full border border-line px-2.5 py-1">music.youtube.com</li>
+                <li class="rounded-full border border-line px-2.5 py-1">playlist?list=…</li>
+              </ul>
+            </div>
           </div>
         </section>
       </main>

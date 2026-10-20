@@ -256,6 +256,27 @@
     @apply size-full;
   }
 
+  /* Pestañas Cola / Escuchadas */
+  .tab {
+    @apply flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold whitespace-nowrap text-muted transition hover:text-fg;
+  }
+
+  .tab[aria-selected="true"] {
+    @apply bg-panel2 text-fg shadow-sm;
+  }
+
+  .tab-count {
+    @apply rounded-full bg-panel2 px-1.5 text-[11px] text-muted tabular-nums;
+  }
+
+  .tab[aria-selected="true"] .tab-count {
+    @apply bg-accent/15 text-accent;
+  }
+
+  .tab-count:empty {
+    display: none;
+  }
+
   /* Ecualizador animado para la canción que está sonando */
   .eq {
     @apply inline-flex h-3.5 items-end gap-0.5;
